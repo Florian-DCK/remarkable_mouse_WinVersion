@@ -9,6 +9,9 @@ import struct
 from getpass import getpass
 from itertools import cycle
 
+# Ajout pour l'icône de la barre système
+from remarkable_mouse.tray_icon import create_tray_icon
+
 import paramiko
 import paramiko.agent
 import paramiko.config
@@ -142,6 +145,7 @@ def main():
         parser.add_argument('--threshold', metavar='THRESH', default=600, type=int, help="stylus pressure threshold (default 600)")
         parser.add_argument('--evdev', action='store_true', default=False, help="use evdev to support pen pressure (requires root, Linux only)")
         parser.add_argument('--pen', action='store_true', default=False, help="use pen input to support pen pressure in windows")
+        parser.add_argument('--no-tray', action='store_true', default=False, help="désactiver l'icône de la barre système")
 
         args = parser.parse_args()
 
@@ -151,8 +155,12 @@ def main():
         else:
             log.setLevel(logging.INFO)
 
-        # ----- Connect to device -----
+        # Afficher l'icône de la barre système si non désactivée
+        tray_icon = None
+        if not args.no_tray:
+            tray_icon = create_tray_icon(on_quit=lambda: sys.exit(0))
 
+        # ----- Connect to device -----
         rm_inputs = open_rm_inputs(
             address=args.address,
             key=args.key,
@@ -161,13 +169,10 @@ def main():
         print("Connected to", args.address)
 
         # ----- Handle events -----
-
         if args.evdev:
             from remarkable_mouse.evdev import read_tablet
-
         elif args.pen:
             from remarkable_mouse.pen import read_tablet
-
         else:
             from remarkable_mouse.pynput import read_tablet
 
