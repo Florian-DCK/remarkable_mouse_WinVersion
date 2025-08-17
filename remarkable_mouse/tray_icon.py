@@ -5,6 +5,28 @@ import os
 import sys
 
 def create_tray_icon(on_quit=None, screens=None, on_screen_select=None):
+    # Le menu "Gestures" contrôle touch_enabled (et donc les gestures)
+    if not hasattr(create_tray_icon, 'touch_enabled'):
+        create_tray_icon.touch_enabled = False
+        # Synchronise la variable globale du module pen au démarrage
+        try:
+            import remarkable_mouse.pen as pen_mod
+            pen_mod.gestures_enabled = False
+        except Exception:
+            pass
+
+    def toggle_gestures(icon, item):
+        create_tray_icon.touch_enabled = not create_tray_icon.touch_enabled
+        # Synchronise la variable globale du module pen si possible
+        try:
+            import remarkable_mouse.pen as pen_mod
+            pen_mod.gestures_enabled = create_tray_icon.touch_enabled
+        except Exception:
+            pass
+        icon.update_menu()
+
+    def checked_gestures(item):
+        return create_tray_icon.touch_enabled
     # Génère une icône carrée rouge bien visible
     image = Image.new('RGB', (64, 64), color=(255, 0, 0))
     d = ImageDraw.Draw(image)
@@ -27,6 +49,17 @@ def create_tray_icon(on_quit=None, screens=None, on_screen_select=None):
                 on_screen_select(idx)
         return _action
 
+    # Ajout d'un bouton pour activer/désactiver le touch
+    if not hasattr(create_tray_icon, 'touch_enabled'):
+        create_tray_icon.touch_enabled = True
+
+    def toggle_touch(icon, item):
+        create_tray_icon.touch_enabled = not create_tray_icon.touch_enabled
+        icon.update_menu()
+
+    def checked_touch(item):
+        return create_tray_icon.touch_enabled
+
     def build_menu():
         screen_items = []
         if screens:
@@ -40,7 +73,10 @@ def create_tray_icon(on_quit=None, screens=None, on_screen_select=None):
                     checked=checked
                 ))
         return pystray.Menu(
-            *(screen_items + [pystray.MenuItem('Quitter', quit_action)])
+            *(screen_items + [
+                pystray.MenuItem('Gestures', toggle_gestures, checked=checked_gestures, default=False),
+                pystray.MenuItem('Quitter', quit_action)
+            ])
         )
 
     icon = pystray.Icon('remarkable_mouse', image, 'reMarkable Mouse', build_menu())
