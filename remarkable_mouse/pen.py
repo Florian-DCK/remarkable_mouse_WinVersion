@@ -141,8 +141,21 @@ def read_tablet(rm_inputs, *, orientation, monitor_num, region, threshold, mode)
         mode (str): mapping mode
     """
 
-    monitor, _ = get_monitor(region, monitor_num, orientation)
+    from screeninfo import get_monitors
+    monitors = list(get_monitors())
+    current_monitor = [monitor_num]
+    monitor, _ = get_monitor(region, current_monitor[0], orientation)
     log.debug('Chose monitor: {}'.format(monitor))
+
+    def set_monitor(idx):
+        if 0 <= idx < len(monitors):
+            current_monitor[0] = idx
+            nonlocal monitor
+            monitor, _ = get_monitor(region, current_monitor[0], orientation)
+            print(f"Switched to monitor {current_monitor[0]}: {monitor}")
+
+    # Expose setter for integration
+    read_tablet.set_monitor = set_monitor
 
     x = y = mapped_x = mapped_y = press = mapped_press = tiltX = tiltY = 0
 

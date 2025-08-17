@@ -157,8 +157,14 @@ def main():
 
         # Afficher l'icône de la barre système si non désactivée
         tray_icon = None
+        screens = None
+        on_screen_select = None
+        if not args.no_tray and args.pen:
+            from screeninfo import get_monitors
+            screens = list(get_monitors())
         if not args.no_tray:
-            tray_icon = create_tray_icon(on_quit=lambda: sys.exit(0))
+            # on_screen_select sera branché après import de read_tablet
+            pass
 
         # ----- Connect to device -----
         rm_inputs = open_rm_inputs(
@@ -175,6 +181,15 @@ def main():
             from remarkable_mouse.pen import read_tablet
         else:
             from remarkable_mouse.pynput import read_tablet
+
+        # Connect tray menu to pen screen switch
+        if not args.no_tray and args.pen:
+            def on_screen_select(idx):
+                if hasattr(read_tablet, 'set_monitor'):
+                    read_tablet.set_monitor(idx)
+            tray_icon = create_tray_icon(on_quit=lambda: sys.exit(0), screens=screens, on_screen_select=on_screen_select)
+        elif not args.no_tray:
+            tray_icon = create_tray_icon(on_quit=lambda: sys.exit(0))
 
         read_tablet(
             rm_inputs,
