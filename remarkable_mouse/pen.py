@@ -148,6 +148,8 @@ def read_tablet(rm_inputs, *, orientation, monitor_num, region, threshold, mode)
 
     stream = rm_inputs['pen']
 
+    event_counter = 0
+    SEND_EVERY_N = 5  # n'envoyer qu'un event sur 5
     while True:
         try:
             data = stream.read(16)
@@ -177,19 +179,20 @@ def read_tablet(rm_inputs, *, orientation, monitor_num, region, threshold, mode)
             tiltY = int(e_value*(90/6300))
 
         if codes[e_type][e_code] == 'SYN_REPORT':
-            
-            mapped_x, mapped_y = remap(
-                x, y,
-                wacom_max_x, wacom_max_y,
-                monitor.width, monitor.height,
-                mode, orientation,
-            )
-            # handle draw
-            if press > 0:
-                updatePenInfo(True, max(int(monitor.x+mapped_x),0), max(int(monitor.y+mapped_y),0), mapped_press, tiltX, tiltY)
-            else:
-                updatePenInfo(False, max(int(monitor.x+mapped_x),0), max(int(monitor.y+mapped_y),0), mapped_press, tiltX, tiltY)
-            applyPen()
+            event_counter += 1
+            if event_counter % SEND_EVERY_N == 0:
+                mapped_x, mapped_y = remap(
+                    x, y,
+                    wacom_max_x, wacom_max_y,
+                    monitor.width, monitor.height,
+                    mode, orientation,
+                )
+                # handle draw
+                if press > 0:
+                    updatePenInfo(True, max(int(monitor.x+mapped_x),0), max(int(monitor.y+mapped_y),0), mapped_press, tiltX, tiltY)
+                else:
+                    updatePenInfo(False, max(int(monitor.x+mapped_x),0), max(int(monitor.y+mapped_y),0), mapped_press, tiltX, tiltY)
+                applyPen()
             
         # if log.level == logging.DEBUG:
             # log_event(e_time, e_millis, e_type, e_code, e_value)
